@@ -1,0 +1,22 @@
+2026-08-15 14:34:08,888 [scrapy.utils.log] [INFO]: Scrapy 2.12.0 started (bot: movie_project)
+2026-08-15 14:34:08,919 [scrapy.utils.log] [INFO]: Versions: lxml 4.9.4.0, libxml2 2.10.3, cssselect 1.2.0, parsel 1.9.1, w3lib 2.2.1, Twisted 24.10.0, Python 3.11.4 (tags/v3.11.4:d2340ef, Jun  7 2023, 05:45:37) [MSC v.1934 64 bit (AMD64)], pyOpenSSL 24.2.1 (OpenSSL 3.3.2 3 Sep 2024), cryptography 43.0.3, Platform Windows-10-10.0.22631-SP0
+2026-08-15 14:34:08,922 [scrapy.addons] [INFO]: Enabled addons:
+[]
+2026-08-15 14:34:08,922 [asyncio] [DEBUG]: Using selector: SelectSelector
+2026-08-15 14:34:08,923 [scrapy.utils.log] [DEBUG]: Using reactor: twisted.internet.asyncioreactor.AsyncioSelectorReactor
+2026-08-15 14:34:08,923 [scrapy.utils.log] [DEBUG]: Using asyncio event loop: asyncio.windows_events._WindowsSelectorEventLoop
+2026-08-15 14:34:08,923 [scrapy.utils.log] [DEBUG]: Using reactor: twisted.internet.asyncioreactor.AsyncioSelectorReactor
+2026-08-15 14:34:08,923 [scrapy.utils.log] [DEBUG]: Using asyncio event loop: asyncio.windows_events._WindowsSelectorEventLoop
+2026-08-15 14:34:08,928 [scrapy.extensions.telnet] [INFO]: Telnet Password: 06d19a1bf7f37d71
+2026-08-15 14:34:08,948 [scrapy.middleware] [INFO]: Enabled extensions:
+['scrapy.extensions.corestats.CoreStats',
+ 'scrapy.extensions.telnet.TelnetConsole',
+ 'scrapy.extensions.logstats.LogStats']
+2026-08-15 14:34:08,948 [scrapy.crawler] [INFO]: Overridden settings:
+{'BOT_NAME': 'movie_project',
+ 'FEED_EXPORT_ENCODING': 'utf-8',
+ 'LOG_LEVEL': 'INFO',
+ 'LOG_SHORT_NAMES': True,
+ 'NEWSPIDER_MODULE': 'movie_project.spiders',
+ 'SPIDER_MODULES': ['movie_project.spiders'],
+ 'TWISTED_REACTOR': 'twisted.internet.asyncioreactor.AsyncioSelectorReactor'}

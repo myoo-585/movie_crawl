@@ -1,0 +1,3 @@
+2026-08-15 14:35:52,171 [scrapy.extensions.logstats] [INFO]: Crawled 2 pages (at 2 pages/min), scraped 0 items (at 0 items/min)
+2026-08-15 14:35:52,436 [scrapy.core.engine] [DEBUG]: Crawled (200) <GET https://www.maoyan.com/ajax/films/1455644?timeStamp=1786775662285&index=195&signKey=b64324b34469528b6f5d36ae3b1c5081&channelId=40011&sVersion=2&webdeiver=false&yodaReady=h5> (referer: https://www.maoyan.com/films?showType=1)
+2026-08-15 14:35:52,438 [scrapy.core.engine] [DEBUG]: Crawled (200) <GET https://www.maoyan.com/ajax/films/1552828?timeStamp=1786775662286&index=902&signKey=2b009ac51fad79410fe50c8af738c71a&channelId=40011&sVersion=2&webdeiver=false&yodaReady=h5> (referer: https://www.maoyan.com/films?showType=1)

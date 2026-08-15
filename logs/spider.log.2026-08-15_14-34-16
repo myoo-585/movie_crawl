@@ -1,0 +1,2 @@
+2026-08-15 14:34:16,602 [scrapy.downloadermiddlewares.redirect] [DEBUG]: Redirecting (302) to <GET https://www.maoyan.com/> from <GET https://www.maoyan.com/>
+2026-08-15 14:34:16,827 [scrapy.core.engine] [DEBUG]: Crawled (200) <GET https://www.maoyan.com/> (referer: None)

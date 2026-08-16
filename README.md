@@ -2,13 +2,9 @@
 
 ---
 
-
-
 ## 猫眼电影
 
 技术栈：scrapy + mysql 爬取猫眼电影相关信息
-
-
 
 ### 已实现内容:
 
@@ -16,22 +12,16 @@
 
 - 简介、上映时间
 
-  
+- 国家、电影时长
 
 ### 未实现内容（正在赶工）：
 
-- 国家、电影时长
-
 - 票房、评分
-
-
 
 ### 运行
 
 ```
 bash
-pip install -r requirements.txt
+pip install -r requirements.txt 
 scrapy crawl maoyan
 ```
-
-

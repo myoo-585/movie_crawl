@@ -44,33 +44,17 @@ class ExampleSpider(scrapy.Spider):
             movie_type = f'{movie_type} {types.get()}'
         item['type'] = movie_type if movie_type else "未获得类别"
         # 获取国家
-        lastest_country_time = response.xpath("string(//ul/li/a[@href='/films']/parent::li/following-sibling::li[1]/text())").get()
-        # if lastest_country:
-        #     last_country = re.match("^(.*)/", lastest_country.strip())
-        #     country = last_country.group(1) if last_country else "未找到国家名"
-        # chaos_country = lastest_country_time.split('\n')[0].split('/')
-        # 获得时长
-        # if chaos_country:
-        #     country = chaos_country[0].strip()
-            
-        match = re.search(r'^(.*?)\s*/\s(.*?)分钟', lastest_country_time)
+        lastest_country = response.xpath("string(//ul/li/a[@href='/films']/parent::li/following-sibling::li[1]/text())").get()
+        if lastest_country:
+            new_lastest_country = lastest_country.strip().replace(" ", "")
 
-        if match:
-            country = match.group(1)  # 提取第一个括号：国家
-            item['country'] = country
-            time = match.group(2) # 提取第二个括号：数字
-            item['time'] = time
-        else:
-            country, duration = '未知', '0'
-        
-        # chaos_time = lastest_country_time.split('\n')[1].split('/')
-        # if chaos_time:
-        #     time = chaos_time[1].strip().replace("分钟", '')
-
-        # 
-        # last_time = re.match('/\s(.*?)$', lastest_country)
-        # if last_time:
-        #     time = last_time.group(1)
+            country = new_lastest_country.split("\n")[0]
+            item['country'] = country.strip()
+            # 获得时长
+            time_ = new_lastest_country.split("\n")[1]
+            if time_:
+                last_time = re.match("/(.*?)分钟", time_)
+                item['time'] = last_time.group(1) if last_time else "没正确匹配到时长信息"
             
         # 上映时间
         last_rel_schedule = response.xpath("string(//ul/li/a[@href='/films']/parent::li/following-sibling::li[2]/text())").get()

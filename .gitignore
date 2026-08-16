@@ -218,3 +218,7 @@ __marimo__/
 .streamlit/secrets.toml
 # env
 .env
+# test file
+/text.py
+# logs file
+logs/

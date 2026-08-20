@@ -58,20 +58,35 @@ class MysqlPipeline:
         """
         cursor.execute(sql)
 
+        alter_sqls = [
+            "ALTER TABLE maoyan_movie ADD COLUMN star VARCHAR(50) COMMENT 'star'",
+            "ALTER TABLE maoyan_movie ADD COLUMN box_office VARCHAR(50) COMMENT 'box_office'",
+        ]
+
+        for sql in alter_sqls:
+            try:
+                cursor.execute(sql)
+            except Exception as e:
+                if "Duplicate column name" not in str(e):
+                    raise e
+
     def do_insert(self, cursor, item):
         adapter = ItemAdapter(item)
         cursor.execute("""
-            INSERT INTO maoyan_movie (title, type, director, actor, country, synopsis, rel_schedule, time) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO maoyan_movie (title, type, star, box_office, director, actor, country, synopsis, rel_schedule, time) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             adapter.get('title'),
-            adapter.get('type'),
+            adapter.get('type'),            
+            adapter.get('star'),            
+            adapter.get('box_office'),
             adapter.get('director'),
             adapter.get('actor'),
             adapter.get('country'),
             adapter.get('synopsis'),
             adapter.get('rel_schedule'),
             adapter.get('time'),
+
         ))
 
     def handle_error(self, failure, item, spider):

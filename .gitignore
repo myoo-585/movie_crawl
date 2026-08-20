@@ -220,5 +220,8 @@ __marimo__/
 .env
 # test file
 /text.py
+ddddocr_test.py
 # logs file
 logs/
+# 
+__pycache__

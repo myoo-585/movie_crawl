@@ -10,8 +10,8 @@ class MysqlPipeline(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
     title = scrapy.Field()
-    # star = scrapy.Field()
-    # box_office = scrapy.Field() # 票房
+    star = scrapy.Field()
+    box_office = scrapy.Field() # 票房
     type = scrapy.Field()    
     director = scrapy.Field()
     actor = scrapy.Field()

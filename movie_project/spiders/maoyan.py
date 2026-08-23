@@ -1,20 +1,24 @@
+from typing import Any
+
 import scrapy
-from lxml import etree
-import logging
-from movie_project.items import MysqlPipeline
-from movie_project.utils.sign import MaoyanSigner
-import requests
-from urllib.parse import urlencode
 import re
+import logging
 from io import BytesIO
+
 from fontTools.ttLib import TTFont
 from PIL import Image, ImageDraw, ImageFont
 import ddddocr
+from movie_project.items import MysqlPipeline
+from movie_project.utils.sign import MaoyanSigner
+from lxml import etree
+import requests
+from urllib.parse import urlencode
 import io
-import logging
 import sys
-import os
 
+from urllib.parse import urljoin
+from movie_project.utils.movie_parser import MovieInfoParser
+from movie_project.utils.font_helper import FontHelper
 
 class ExampleSpider(scrapy.Spider):
     name = "maoyan"
@@ -35,220 +39,112 @@ class ExampleSpider(scrapy.Spider):
     }
 
     def parse(self, response):
-        """拼接url"""
-        pin_url = 'films?showType=1'
-        now_url = response.urljoin(pin_url)
-
+        """入口:正在热映电影url"""
+        now_url = response.urljoin('films?showType=1&offset=0')
         yield scrapy.Request(url=now_url, callback=self.parse_detail_url)
 
+
     def parse_detail_url(self, response):
-        base_url = 'https://www.maoyan.com/'
+        """拼接访问具体电影url"""
 
-
-        a_str = 'ajax'
-        url = base_url + a_str
         movie_list = response.xpath("//dd")
-        for movie in movie_list:
-            detail_url = movie.xpath(".//div[@title]/a/@href").get()
-            if detail_url:
-                chaos_movie_detail_url = url  + detail_url
-                movie_detail_url = MaoyanSigner.build_url(chaos_movie_detail_url, webdeiver='false', yodaReady='h5')
+        if not movie_list:
+            self.logger.warning(f"页面结构发生变化，请在网页查看并更改")
+        self.logger.info(f"正在拼接各个电影具体的url...")
+        
+        try:
+            for movie in movie_list:    
+                detail_url = movie.xpath(".//div[@title]/a/@href").get()
+                if detail_url:
+                    detail_url = detail_url.lstrip('/')
+                    chaos_movie_detail_url = urljoin('https://www.maoyan.com/ajax/', detail_url)
+                    self.logger.info(f"拼接的url是：{chaos_movie_detail_url}")
+                    movie_detail_url = MaoyanSigner.build_url(chaos_movie_detail_url, webdeiver='false', yodaReady='h5')
+                    if movie == movie_list[-1]:
+                        self.logger.info(f"电影详情页：{movie_detail_url}")
+                    yield scrapy.Request(url=movie_detail_url, callback=self.parse_detail)
+            self.logger.info(f"各个电影的详情页面爬取完毕,共计:{len(movie_list)}")
 
-                yield scrapy.Request(url=movie_detail_url, callback=self.parse_detail)
+
+        except Exception as e:
+            self.logger.error(f"解析电影条目失败：{e}")
 
         
     def parse_detail(self, response):
-        item = MysqlPipeline()
-        # 获得电影名
-        title = response.xpath("//h1/text()").get()
-        item['title'] = title if title else "未获取到电影名"
-        # 获得类别
-        movie_type = ''
-        types_list = response.xpath("//h1/following-sibling::ul/li[@class='ellipsis']/a/text()")
-        for types in types_list:
-            movie_type = f'{movie_type} {types.get()}'
-        item['type'] = movie_type if movie_type else "未获得类别"
-        # 获取国家
-        lastest_country = response.xpath("string(//ul/li/a[@href='/films']/parent::li/following-sibling::li[1]/text())").get()
-        if lastest_country:
-            new_lastest_country = lastest_country.strip().replace(" ", "")
-
-            country = new_lastest_country.split("\n")[0]
-            item['country'] = country.strip()
-            # 获得时长
-            time_ = new_lastest_country.split("\n")[1]
-            if time_:
-                last_time = re.match("/(.*?)分钟", time_)
-                item['time'] = last_time.group(1) if last_time else "没正确匹配到时长信息"
-            
-        # 上映时间
-        last_rel_schedule = response.xpath("string(//ul/li/a[@href='/films']/parent::li/following-sibling::li[2]/text())").get()
-        rel_schedule = re.match('^(.*?)[\u4e00-\u9fa5]+', last_rel_schedule)
-        item['rel_schedule'] = rel_schedule.group(1) if rel_schedule else "None"
-        # 简介
-        synopsis = response.xpath(("//div[@class='mod-content']/span[@class='dra']/text()")).get()
-        item['synopsis'] = synopsis
-        # 导演
-        director_actor = response.xpath("//div[@class='module']//div[@class='name']/text()")
-        director = director_actor.get()
-        item['director'] = director
-        # 前4个主演
-        actor_result = ''
-        for actor in director_actor[1:]:
-            actor_result = f'{actor_result} {actor.get()}'
-        item['actor'] = actor_result
-        # 评分(star) 票房(box_office)
-        choas_font_url = response.xpath("//style[contains(text(), '@font-face')]/text()")
-
-        chaos_text = response.xpath("//span[@class='stonefont']/text()").getall()
-
-        # self.logger.info(f"这是字体匹配的xpath结果-->{chaos_text}")
-        if chaos_text:
-            unit_box_office = response.xpath("//span[@class='unit']/text()").get()
-            for choas_font in choas_font_url:
-                mat = re.search('\,url\("(.*\.woff)"', choas_font.get().strip())
-
-                if mat:
-                    font_url = f"https:{mat.group(1)}"
-                    # self.logger.info(f"这是匹配并拼接好的woff_url结果-->{font_url}")
-                    finally_result = response.xpath("//span[contains(@class, 'index-left no-info')]/text()").get()
-                    
-                    
-                else:
-                    print("正则并没有匹配到")
-
-        yield scrapy.Request(
-            url=font_url,
-            callback=self.woff_url,
-            cb_kwargs={'item': item, 
-                       'chaos_text':chaos_text,
-                       'finally_result':finally_result,
-                       'unit_box_office':unit_box_office
-                       },
-            dont_filter=True  # 强制不去重
-        )
-
-
-    def woff_url(self, response, item, chaos_text, finally_result, unit_box_office):
-        pin = f"{item['title'][:5]}"
-        woff_name = pin + '.woff'
-        ttf_name = pin + '.ttf'
         
-        woff_data = BytesIO(response.body)
-        # .woff --> .ttf
-        font = TTFont(woff_data)
-        # 映射
-        cmap = font.getBestCmap()
-        # 字体加载
-        ttf_data = BytesIO()
-        font.flavor = None
-        font.save(ttf_data)
-        ttf_data.seek(0)
-        pil_font = ImageFont.truetype(ttf_data, 40)
-        # 
-        ocr = ddddocr.DdddOcr()
-        mapping = {}
-        for k, v in cmap.items():
-            # 绘画
-            img = Image.new("L", (60, 60), "white")
-            draw = ImageDraw.Draw(img)
-            draw.text((10, 5), chr(k), font=pil_font, fill="black")
-            # 缓存到字节流
-            img_bytes = io.BytesIO()
-            img.save(img_bytes, format="PNG")
-            # 识别
-            result = ocr.classification(img_bytes.getvalue())
+        try:
+            self.logger.info(f"正在获取具体的信息...")
+            item = MysqlPipeline()
+            movie_parser = MovieInfoParser(response)
+            # 获得电影名
+            title = movie_parser.extract_title()
+            item['title']=title
+            # 获得类别
+            type = movie_parser.extract_type()
+            item['type']=type
+            # 获取国家和时长
+            country, time = movie_parser.extract_country_time()
+            item['country']=country
+            item['time']=time
+            # 上映时间
+            rel_schedule = movie_parser.extract_rel_schedule()
+            item['rel_schedule']=rel_schedule
+            # 简介
+            synopsis = movie_parser.extract_synopsis()
+            item['synopsis']=synopsis
+            # 导演和主演
+            director, actor = movie_parser.extract_director_actor()
+            item['director']=director
+            item['actor']=actor
 
-            if result.isdigit():
-                mapping[hex(k)] = result
-                self.logger.info(f"这是映射表mapping的结果-->{mapping}")
+            # 评分(star) 票房(box_office)
+            self.logger.info(f"{item}")
+            choas_font_url = response.xpath("//style[contains(text(), '@font-face')]/text()")
 
-        # 完整情况
-        message_font = chaos_text
-        self.logger.info(f"这是字体匹配的xpath结果-->{chaos_text}")
+            chaos_text = response.xpath("//span[@class='stonefont']/text()").getall()
 
-        if mapping:
-            star_list = []
-            people_list = [] # 评分人数
-            box_offic_list = []
+            self.logger.info(f"这是字体匹配的xpath结果-->{chaos_text}")
+            if chaos_text:
+                self.logger.info(f"成功匹配到字体匹配的xpath结果-->{chaos_text}")
+                unit_box_office = response.xpath("//span[@class='unit']/text()").get()
+                for choas_font in choas_font_url:
+                    mat = re.search('\,url\("(.*\.woff)"', choas_font.get().strip())
 
-            if len(chaos_text) == 3:
+                    if mat:
+                        font_url = f"https:{mat.group(1)}"
+                        self.logger.info(f"这是匹配并拼接好的woff_url结果-->{font_url}")
+                        finally_result = response.xpath("//span[contains(@class, 'index-left no-info')]/text()").get()
 
-                for j in range(len(message_font)):
-                    if j == 0:
-                        for i in message_font[j]:
-                            if i == '.':
-                                star_list.append('.')
-                                continue
-
-                            real_value = mapping.get(hex(ord(i)), i)
-                            star_list.append(real_value) # 评分
-                    # 评分人数
-                    # elif j == 1:
-                    #     for i in message_font[j]:
-
-                    #         if i == '.':
-                    #             people_list.append('.')
-                    #             continue  
-                    #         elif i == '万':
-                    #             people_list.append('万')
-                    #             continue
-
-                    #         real_value = mapping.get(hex(ord(i)), i)
-                    #         people_list.append(real_value)
-                    elif j == 2:
-                        for i in message_font[j]:
-
-                            if i == '.':
-                                box_offic_list.append('.')
-                                continue  
-
-                            real_value = mapping.get(hex(ord(i)), i)
-                            box_offic_list.append(real_value)
-                star = ''.join(star_list)
-                item['star'] = star
-                # people = ''.join(people_list) # 评分人数
-
-                box_office = ''.join(box_offic_list)
-                item['box_office'] = f"{box_office}{unit_box_office}"
-                if box_office and star:
-                    self.logger.info(f"票房：{box_office}， 评分：{star}")
-                else:
-                    self.logger.info(f"票房， 评分并未获取到")
-                yield item
-            elif len(chaos_text) == 2: # 想看数 + box_office
-                for i in message_font[1]:
-
-                    if i == '.':
-                        box_offic_list.append('.')
-                        continue  
-
-                    real_value = mapping.get(hex(ord(i)), i)
-                    box_offic_list.append(real_value)
-                box_office = ''.join(box_offic_list)
-                item['box_office'] = f"{box_office}{unit_box_office}"
-                item['star'] = "暂无评分"
-                yield item
-
-            elif len(chaos_text) == 1: # 想看数 / 票房
-                if finally_result == "暂无":
-                    for i in message_font[0]:
-
-                        if i == '.':
-                            box_offic_list.append('.')
-                            continue  
-
-                        real_value = mapping.get(hex(ord(i)), i)
-                        box_offic_list.append(real_value)
-                    box_office = ''.join(box_offic_list)
-                    item['box_office'] = f"{box_office}{unit_box_office}"
-                    item['star'] = "暂无评分"
-                    yield item
-                    
-                else:
-                    item['star'] = '暂无评分'
-                    item['box_office'] = '暂无票房'
-                    yield item
+                        self.logger.info(f"正在前往下一个函数进行评分和票房的获取...")
+                        yield scrapy.Request(
+                            url=font_url,
+                            callback=self.font_crackANDstar_box_office,
+                            cb_kwargs={'item': item, 
+                                    'chaos_text':chaos_text,
+                                    'finally_result':finally_result,
+                                    'unit_box_office':unit_box_office
+                                    },
+                            dont_filter=True  # 强制不去重
+                        )
+                        break
+                    else:
+                        self.logger.info(f"匹配并拼接好的woff_url结果的font_url没有匹配到")
+            else:
+                self.logger.info(f"字体匹配的xpath的结果chaos_text没有匹配到")
+        except Exception as e:
+            self.logger.error(f"解析详情页出错：{e}")
+            
 
 
+    def font_crackANDstar_box_office(self, response, item, chaos_text, finally_result, unit_box_office):
+        self.font_helper = FontHelper()
+        self.logger.info(f"运行到评分位置")
+        font_data = BytesIO(response.body)
+        mapp = self.font_helper.build_font_mappping(font_data)
+        star, box_office = self.font_helper.decrypt_number(chaos_text, mapp, unit_box_office, finally_result)
+        item['star']=star
+        item['box_office']=box_office if box_office else "暂无票房"
+
+        self.logger.info(f"具体信息获取完毕！")
+        yield item
 

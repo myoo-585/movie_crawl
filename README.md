@@ -36,6 +36,10 @@
 
 ### 技术栈
 
+### 未完成内容：
+
+- 正在热映电影第二页
+
 ### 注意事项：
 
 若数据库里的star和box_office类型不对，在mysql试试这个：
@@ -49,7 +53,7 @@
 ```
 bash
 pip install -r requirements.txt 
-scrapy crawl example
+scrapy crawl maoyan
 ```
 
 ## ️<mark> 免责声</mark>明

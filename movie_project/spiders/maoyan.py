@@ -1,21 +1,10 @@
-from typing import Any
-
 import scrapy
 import re
 import logging
 from io import BytesIO
-
-from fontTools.ttLib import TTFont
-from PIL import Image, ImageDraw, ImageFont
-import ddddocr
 from movie_project.items import MysqlPipeline
 from movie_project.utils.sign import MaoyanSigner
-from lxml import etree
-import requests
 from urllib.parse import urlencode
-import io
-import sys
-
 from urllib.parse import urljoin
 from movie_project.utils.movie_parser import MovieInfoParser
 from movie_project.utils.font_helper import FontHelper
@@ -41,7 +30,27 @@ class ExampleSpider(scrapy.Spider):
     def parse(self, response):
         """入口:正在热映电影url"""
         now_url = response.urljoin('films?showType=1&offset=0')
-        yield scrapy.Request(url=now_url, callback=self.parse_detail_url)
+        yield scrapy.Request(url=now_url, 
+                             callback=self.next_url_parse)
+
+
+    def next_url_parse(self, response):
+        judge_con = response.xpath("//ul[@class='list-pager']/li/a/text()").getall()
+        movie_page_count = len(judge_con) - 1
+        self.logger.info(f"当前的url有：{movie_page_count}个页面")
+        if movie_page_count <= 0:
+            return self.logger.info("长度不够无法进行页面循环")
+        # url_parts = response.url.split("offset=")
+        # current_offset = int(url_parts[1].split("&")[0]) if len(url_parts) >= 2 else 0 
+        for movie_num in range(1, movie_page_count+1):
+            
+            offset = (movie_num - 1) * 18
+            if offset == 0:
+                next_url = f"https://www.maoyan.com/films?showType=1"
+        
+            else:
+                next_url = f"https://www.maoyan.com/films?showType=1&offset={offset}"
+            yield scrapy.Request(url=next_url, callback=self.parse_detail_url)
 
 
     def parse_detail_url(self, response):
